@@ -101,7 +101,9 @@ object RowExtractor {
 	 race_result(19),
 	 race_result(20).split("trainer/")(1).takeWhile(_ != '/'),
 	 race_result(21).split("owner/")(1).takeWhile(_ != '/'),
-	 Try(race_result(22).toDouble).toOption
+     Try(race_result(22).toDouble).toOption,
+     { val horseNamePtn = ".*title=\"(.*?)\".*".r
+       race_result(3) match { case horseNamePtn(horseName) => horseName } }
        )
   }
 
@@ -449,7 +451,8 @@ case class RaceResult(
   stable: String,
   trainer_id: String,
   owner_id: String,
-  earning_money: Option[Double]
+  earning_money: Option[Double],
+  horse_name: String
 )
  
 object DateRe {
@@ -498,6 +501,7 @@ create table if not exists race_result (
   trainer_id         text    not null,
   owner_id           text    not null,
   earning_money      real,
+  horse_name         text,
   primary key (race_id, horse_number),
   foreign key (race_id) references race_info (id)
 );""".execute.apply
@@ -563,7 +567,8 @@ insert or replace into race_result (
   stable,
   trainer_id,
   owner_id,
-  earning_money
+  earning_money,
+  horse_name
 ) values (
   ${rr.race_id},
 
@@ -587,7 +592,8 @@ insert or replace into race_result (
   ${rr.stable},
   ${rr.trainer_id},
   ${rr.owner_id},
-  ${rr.earning_money}
+  ${rr.earning_money},
+  ${rr.horse_name}
 )
 """.update.apply()
   }
@@ -1971,7 +1977,9 @@ object Main {
     args.headOption match {
       case Some("collecturl") => 
         //過去10年分のURLを収集する
-        RaceListScraper.scrape(period = 12 * 10)
+        //とりあえず過去1年分のURLでテスト
+        //RaceListScraper.scrape(period = 12 * 10)
+        RaceListScraper.scrape(period = 12 * 1)
       case Some("scrapehtml") => 
         RaceScraper.scrape()
       case Some("extract") => 
